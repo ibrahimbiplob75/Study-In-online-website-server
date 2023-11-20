@@ -2,15 +2,21 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
 const app = express();
+const cookieParser=require("cookie-parser")
+var jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 
 
 // middleware
-app.use(cors());
+app.use(cors({
+  origin:[
+    "http://localhost:5173"
+  ],
+  credentials:true,
+}));
 app.use(express.json());
+app.use(cookieParser());
 
-
-console.log(process.env.USER_PASS)
 
 
 
@@ -31,19 +37,32 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
-    const database=client.db("amazonDB").collection("products");
+    const database=client.db("groupStudyDB").collection("assignments");
+    const userDB=client.db("userDB").collection("users");
 
+
+
+    app.post("/users",async(req,res)=>{
+        const data=req.body;
+        console.log(data);
+        const result=await userDB.insertOne(data);
+        res.send(result);
+    });
+
+    app.get("/users",async(req,res)=>{
+      const result=await userDB.find().toArray();
+      res.send(result);
+    });
     
     
-    
-    //For view all product
-    app.get("/products",async(req,res)=>{
+    //For view all assignments
+    app.get("/assignments",async(req,res)=>{
       const result=await database.find().toArray();
       res.send(result);
 
     });
 
-    app.get("/countProduct",async(req,res)=>{
+    app.get("/countAssignments",async(req,res)=>{
         const count=await database.estimatedDocumentCount();
         res.send({count});
     });
