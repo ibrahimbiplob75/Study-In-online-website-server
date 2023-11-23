@@ -20,7 +20,7 @@ app.use(cookieParser());
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.npygsvo.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -59,12 +59,49 @@ async function run() {
     app.get("/assignments",async(req,res)=>{
       const result=await database.find().toArray();
       res.send(result);
+    });
+    app.post("/assignments",async(req,res)=>{
+      const id=req.body;
+      const result=await database.insertOne(id);
+      res.send(result);
+    });
+    app.get("/assignments/:id",async(req,res)=>{
+      const id=req.params.id;
+      const query={_id : new ObjectId(id)}
+      const result=await database.findOne(query);
+      res.send(result);
+    });
+    
+    app.delete("/assignments/:id",async(req,res)=>{
+      const id=req.params.id;
+      const query={_id : new ObjectId(id)}
+      const result =await database.deleteOne(query);
+      res.send(result);
 
     });
-
     app.get("/countAssignments",async(req,res)=>{
         const count=await database.estimatedDocumentCount();
         res.send({count});
+    });
+
+    app.patch("/assignments/:id",async(req,res)=>{
+        const id=req.params.id;
+      const query={_id: new ObjectId(id)};
+      const options = { upsert: true };
+      const update=req.body;
+      const updateAssignment={
+        $set:{
+            title:update.title,
+            mark:update.mark,
+            description:update.description,
+            date:update.date,
+            level:update.level,
+            photo:update.photo,
+            
+        }
+      }
+      const result=await database.updateOne(query,updateAssignment,options);
+      res.send(result);
     });
 
     await client.db("admin").command({ ping: 1 });
