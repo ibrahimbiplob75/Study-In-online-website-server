@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
 const app = express();
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cookieParser=require("cookie-parser")
 var jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
@@ -17,10 +18,24 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+const verifyToken=async(req,res,next)=>{
+    const token = req?.cookies?.token;
+     console.log('token in the middleware', token);
+    // no token available 
+    if (!token) {
+        return res.status(401).send({ message: 'unauthorized access no token' })
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: 'unauthorized access ivalid' })
+        }
+        req.user = decoded;
+        next();
+    })
+}
 
 
 
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.npygsvo.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -41,6 +56,25 @@ async function run() {
     const userDB=client.db("userDB").collection("users");
 
 
+      //user data
+      app.post("/jwt",async(req,res)=>{
+        const user=req.body;
+        console.log("Token base user",user);
+        const token=jwt.sign(user,process.env.ACCESS_TOKEN,{expiresIn:"1hr"});
+
+        res.cookie("token",token,{
+          httpOnly:true,
+          secure:true,
+          sameSite:"none",
+        })
+        .send({success:true});
+    });
+
+         app.post('/logout', async (req, res) => {
+            const user = req.body;
+            console.log('logging out', user);
+            res.clearCookie('token', { maxAge: 0 }).send({ success: true })
+        });
 
     app.post("/users",async(req,res)=>{
         const data=req.body;
@@ -57,6 +91,11 @@ async function run() {
     
     //For view all assignments
     app.get("/assignments",async(req,res)=>{
+       let query={};
+      // if(req.query?.email !== req.user.userEmail){
+          
+      //     return res.status(401).send({ message: 'unauthorized access invalid' });
+      // }
       const result=await database.find().toArray();
       res.send(result);
     });
@@ -72,7 +111,7 @@ async function run() {
       res.send(result);
     });
     
-    app.delete("/assignments/:id",async(req,res)=>{
+    app.delete("/assignments/:id",verifyToken,async(req,res)=>{
       const id=req.params.id;
       const query={_id : new ObjectId(id)}
       const result =await database.deleteOne(query);
@@ -84,7 +123,7 @@ async function run() {
         res.send({count});
     });
 
-    app.patch("/assignments/:id",async(req,res)=>{
+    app.patch("/assignments/:id",verifyToken,async(req,res)=>{
         const id=req.params.id;
       const query={_id: new ObjectId(id)};
       const options = { upsert: true };
