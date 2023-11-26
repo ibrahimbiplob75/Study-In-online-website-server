@@ -54,6 +54,7 @@ async function run() {
     // Send a ping to confirm a successful connection
     const database=client.db("groupStudyDB").collection("assignments");
     const userDB=client.db("userDB").collection("users");
+    const submitAssignment=client.db("submitDB").collection("submissions");
 
 
       //user data
@@ -110,6 +111,11 @@ async function run() {
       const result=await database.findOne(query);
       res.send(result);
     });
+
+    app.get("/submited",async(req,res)=>{
+      const result= await submitAssignment.find().toArray();
+      res.send(result);
+    });
     
     app.delete("/assignments/:id",verifyToken,async(req,res)=>{
       const id=req.params.id;
@@ -122,6 +128,21 @@ async function run() {
         const count=await database.estimatedDocumentCount();
         res.send({count});
     });
+
+
+
+   
+
+    app.post("/assignments/submit",async(req,res)=>{
+      const data=req.body;
+      const result=await submitAssignment.insertOne(data);
+      res.send(result);
+    });
+    
+
+    
+
+
 
     app.patch("/assignments/:id",verifyToken,async(req,res)=>{
         const id=req.params.id;
