@@ -39,7 +39,7 @@ const verifyToken=async(req,res,next)=>{
 
 
 
-const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.npygsvo.mongodb.net/?retryWrites=true&w=majority`;
+const uri = process.env.DB_URI
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -53,11 +53,11 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    await client.connect();
     // Send a ping to confirm a successful connection
     const database=client.db("groupStudyDB").collection("assignments");
-    const userDB=client.db("userDB").collection("users");
-    const submitAssignment=client.db("submitDB").collection("submissions");
+    const userDB=client.db("groupStudyDB").collection("users");
+    const submitAssignment=client.db("groupStudyDB").collection("submissions");
 
 
       //user data
@@ -74,11 +74,11 @@ async function run() {
         .send({success:true});
     });
 
-         app.post('/logout', async (req, res) => {
-            const user = req.body;
-            console.log('logging out', user);
-            res.clearCookie('token', { maxAge: 0 }).send({ success: true })
-        });
+    app.post('/logout', async (req, res) => {
+      const user = req.body;
+      console.log('logging out', user);
+      res.clearCookie('token', { maxAge: 0 }).send({ success: true })
+    });
 
     app.post("/users",async(req,res)=>{
         const data=req.body;
